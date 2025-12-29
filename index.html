@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -11,58 +12,40 @@
     <style>
       :root {
         /* Morning: Vibrant, High-Contrast, Energizing */
-        --bg-color: #FDFFFC; /* Brighter, crisp morning air white */
-        --text-color: #0E120F; /* Sharp, deep chlorophyll black */
-        --accent-color: #A3FF00; /* Energizing, neon-organic electric lime */
-        --orb-1: #EDFFDF; /* Glowing sprout */
-        --orb-2: #FFFDE6; /* High-noon pollen */
-        --orb-3: #F5FAF0; /* Morning dew mist */
-        --orb-4: #FFFFFF; /* Pure solar light */
-        --glass-bg: rgba(255, 255, 255, 0.55);
-        --border-color: rgba(163, 255, 0, 0.25);
-        --shadow-color: rgba(30, 40, 30, 0.06);
-        --metabolic-glow: rgba(163, 255, 0, 0.35);
+        --bg-color: #FDFFFC;
+        --text-color: #0E120F;
+        --accent-color: #A3FF00;
+        --orb-1: #EDFFDF;
+        --orb-2: #FFFDE6;
+        --orb-3: #F5FAF0;
+        --orb-4: #FFFFFF;
+        --glass-bg: rgba(255, 255, 255, 0.45);
+        --border-color: rgba(163, 255, 0, 0.15);
+        --shadow-color: rgba(30, 40, 30, 0.04);
       }
 
       body.evening {
         /* Evening: Warm, Atmospheric, Sandy Sunset */
-        --bg-color: #1F1512; /* Deep desert dusk */
-        --text-color: #E2D1C3; /* Warm parchment */
-        --accent-color: #D27D56; /* Burnished copper sunset */
-        --orb-1: #3D1C16; /* Embers */
-        --orb-2: #4A352A; /* Baked earth */
-        --orb-3: #2D1A24; /* Twilight lavender */
-        --orb-4: #1F1512; /* Dusk shadow */
-        --glass-bg: rgba(31, 21, 18, 0.75);
-        --border-color: rgba(210, 125, 86, 0.15);
-        --shadow-color: rgba(0, 0, 0, 0.6);
-        --metabolic-glow: rgba(210, 125, 86, 0.12);
+        --bg-color: #1F1512;
+        --text-color: #E2D1C3;
+        --accent-color: #D27D56;
+        --orb-1: #3D1C16;
+        --orb-2: #4A352A;
+        --orb-3: #2D1A24;
+        --orb-4: #1F1512;
+        --glass-bg: rgba(31, 21, 18, 0.65);
+        --border-color: rgba(210, 125, 86, 0.1);
+        --shadow-color: rgba(0, 0, 0, 0.4);
       }
 
       body {
         font-family: 'Inter', sans-serif;
         background-color: var(--bg-color);
         color: var(--text-color);
-        overflow-x: hidden;
-        transition: background-color 3s cubic-bezier(0.4, 0, 0.2, 1), color 3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: background-color 2s cubic-bezier(0.4, 0, 0.2, 1), color 2s cubic-bezier(0.4, 0, 0.2, 1);
         min-height: 100vh;
-      }
-
-      /* Scanline Overlay - Extremely subtle organic texture */
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.01) 50%), linear-gradient(90deg, rgba(163, 255, 0, 0.005), rgba(210, 180, 140, 0.003), rgba(134, 167, 137, 0.005));
-        background-size: 100% 4px, 3px 100%;
-        pointer-events: none;
-        z-index: 100;
-        opacity: 0.2;
-      }
-
-      body.evening::before {
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.02) 50%), linear-gradient(90deg, rgba(210, 125, 86, 0.005), rgba(226, 114, 91, 0.003), rgba(210, 180, 140, 0.005));
-        opacity: 0.08;
+        overflow-y: auto;
+        overflow-x: hidden;
       }
 
       /* Animated Orb Background */
@@ -75,89 +58,49 @@
         z-index: -10;
         overflow: hidden;
         background-color: var(--bg-color);
-        transition: background-color 2s ease;
       }
 
       .orb {
         position: absolute;
         border-radius: 50%;
         filter: blur(140px);
-        opacity: 0.6;
+        opacity: 0.5;
         mix-blend-mode: multiply;
-        animation: drift 25s infinite alternate ease-in-out, pulse 10s infinite alternate ease-in-out;
+        animation: drift 30s infinite alternate ease-in-out;
       }
 
       body.evening .orb {
         mix-blend-mode: screen;
-        opacity: 0.3;
-        filter: blur(180px); 
+        opacity: 0.2;
+        filter: blur(200px); 
       }
 
       .orb-1 { width: 800px; height: 800px; background: var(--orb-1); top: -20%; left: -10%; }
-      .orb-2 { width: 600px; height: 600px; background: var(--orb-2); bottom: -10%; right: -5%; animation-delay: -7s; }
-      .orb-3 { width: 500px; height: 500px; background: var(--orb-3); top: 20%; right: 10%; animation-delay: -14s; }
-      .orb-4 { width: 700px; height: 700px; background: var(--orb-4); bottom: 5%; left: 5%; animation-delay: -21s; }
+      .orb-2 { width: 700px; height: 700px; background: var(--orb-2); bottom: -10%; right: -5%; animation-delay: -5s; }
+      .orb-3 { width: 600px; height: 600px; background: var(--orb-3); top: 20%; right: 10%; animation-delay: -10s; }
+      .orb-4 { width: 900px; height: 900px; background: var(--orb-4); bottom: 5%; left: 5%; animation-delay: -15s; }
 
       @keyframes drift {
         0% { transform: translate(0, 0) rotate(0deg); }
-        50% { transform: translate(140px, 90px) rotate(20deg); }
-        100% { transform: translate(-50px, -110px) rotate(-15deg); }
+        50% { transform: translate(100px, 50px) rotate(10deg); }
+        100% { transform: translate(-30px, -80px) rotate(-10deg); }
       }
 
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.6; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-      }
-
-      body.evening .orb {
-        animation-duration: 60s, 25s; 
-      }
-
-      .font-serif {
-        font-family: 'Playfair Display', serif;
-      }
+      .font-serif { font-family: 'Playfair Display', serif; }
 
       .glass {
         background: var(--glass-bg);
-        backdrop-filter: blur(80px);
-        -webkit-backdrop-filter: blur(80px);
+        backdrop-filter: blur(60px);
+        -webkit-backdrop-filter: blur(60px);
         border: 1px solid var(--border-color);
-        box-shadow: 0 12px 40px 0 var(--shadow-color);
-        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .glass::after {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.05) 50%, transparent 55%);
-        animation: shimmer 20s infinite linear;
-        pointer-events: none;
-      }
-
-      @keyframes shimmer {
-        0% { transform: translateX(-30%) translateY(-30%); }
-        100% { transform: translateX(30%) translateY(30%); }
+        box-shadow: 0 8px 32px 0 var(--shadow-color);
       }
 
       @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-12px) rotate(1.5deg); }
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
       }
-      .animate-float {
-        animation: float 14s ease-in-out infinite;
-      }
-
-      .tracking-athletic {
-        letter-spacing: 0.55em;
-        text-transform: uppercase;
-        font-weight: 800;
-      }
+      .animate-float { animation: float 12s ease-in-out infinite; }
     </style>
     <script type="importmap">
 {
