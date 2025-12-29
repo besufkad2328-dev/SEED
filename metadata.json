@@ -1,0 +1,7 @@
+{
+  "name": "SEED | Premium Nutrition Intelligence",
+  "description": "A high-end nutrition concierge that acts as a nutrition scientist, culinary strategist, and behavioral coach to guide you toward your elite health targets.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
