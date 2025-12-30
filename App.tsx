@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AppState, GoalType, PantryItem, UserProfile, UITheme, Gender, ActivityLevel, MealPlanEntry, ShoppingItem, HealthLogEntry, BioFeedbackEntry, HydrationEntry } from './types';
 import { DEFAULT_TARGETS, INITIAL_PANTRY } from './constants';
@@ -73,13 +72,10 @@ const App: React.FC = () => {
   const [showLogger, setShowLogger] = useState(false);
   const [mealInput, setMealInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isGeneratingList, setIsGeneratingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEvening, setIsEvening] = useState(false);
   const [timeTravelMonths, setTimeTravelMonths] = useState(0);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem('seed_state', JSON.stringify({ ...state, lastUpdate: new Date().toISOString() }));
@@ -147,14 +143,22 @@ const App: React.FC = () => {
 
   const progress = Math.min(totalKcal / state.targetKcal, 1);
 
-  const handleLogMeal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mealInput.trim() || isAnalyzing) return;
+  const handleLogMeal = async (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
+    
+    const trimmedInput = mealInput.trim();
+    if (!trimmedInput || isAnalyzing) return;
+    
+    if (trimmedInput.length < 5) {
+      setError("Provide deeper biological details for metabolic precision.");
+      return;
+    }
+
     setIsAnalyzing(true);
     setError(null);
     try {
       const analysis = await analyzeMealWithAura(
-        mealInput,
+        trimmedInput,
         state.goal,
         state.targetMacros,
         state.pantry,
@@ -162,6 +166,11 @@ const App: React.FC = () => {
         state.history,
         state.bioFeedbackHistory
       );
+      
+      if (!analysis || !analysis.mealName) {
+        throw new Error("Neural resolution failure.");
+      }
+
       setState(prev => ({
         ...prev,
         history: [analysis, ...prev.history],
@@ -169,315 +178,395 @@ const App: React.FC = () => {
       }));
       setMealInput('');
     } catch (err) {
-      setError("Metabolic sync failed. SEED is recalibrating...");
+      setError("Metabolic sync interrupted. SEED is recalibrating. Please try again.");
+      console.error(err);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleUpdateProfile = (field: keyof UserProfile, value: any) => {
-    setState(prev => ({
-      ...prev,
-      userProfile: { ...prev.userProfile, [field]: value }
-    }));
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      handleLogMeal(e);
+    }
   };
 
   const LandingPage = () => {
     const futureProphecy = useMemo(() => {
       if (timeTravelMonths === 0) return null;
       const targetDate = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(Date.now() + timeTravelMonths * 30 * 24 * 60 * 60 * 1000));
-      if (state.goal === GoalType.WEIGHT_LOSS) return `At current precision, expect a net reduction of ${(timeTravelMonths * 1.8).toFixed(1)}kg by ${targetDate}.`;
+      if (state.goal === GoalType.WEIGHT_LOSS) return `Expect a net biological reduction of ${(timeTravelMonths * 1.8).toFixed(1)}kg by ${targetDate}.`;
       if (state.goal === GoalType.WEIGHT_GAIN) return `Structural mass projection: +${(timeTravelMonths * 1.2).toFixed(1)}kg by ${targetDate}.`;
-      return `Projected cognitive performance increase of ${timeTravelMonths * 5}% by ${targetDate}.`;
-    }, []);
+      return `Projected cognitive focus uplift of ${timeTravelMonths * 5}% by ${targetDate}.`;
+    }, [timeTravelMonths]);
 
     return (
       <div className="w-full">
-        {/* Hero Section */}
-        <section className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        {/* High-Conversion Hero Section */}
+        <section className="min-h-screen flex flex-col items-center justify-center p-6 text-center pt-32">
           <DailyBloom progress={timeTravelMonths > 0 ? 1 : 0.72} isEvening={isEvening} forestDensity={timeTravelMonths / 6} accentProp={dynamicAccent} />
-          <div className="max-w-4xl mt-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-            <h1 className="text-6xl md:text-8xl font-serif mb-8 leading-tight">
-              Biological <span className="italic" style={{ color: dynamicAccent }}>Excellence.</span>
+          
+          <div className="max-w-5xl mt-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
+              <div className="flex items-center gap-2 glass px-5 py-2 rounded-full border border-zinc-200/50">
+                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Nutritionist-Approved Intelligence</span>
+              </div>
+              <div className="flex items-center gap-2 glass px-5 py-2 rounded-full border border-zinc-200/50">
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Science-Backed Databases</span>
+              </div>
+            </div>
+
+            <h1 className="text-6xl md:text-9xl font-serif mb-10 leading-tight">
+              Track <span className="italic" style={{ color: dynamicAccent }}>Nutrition</span>,<br/>Not Just Calories.
             </h1>
-            <p className="text-lg md:text-xl font-serif italic opacity-60 max-w-2xl mx-auto mb-12">
-              "The synthesis of high-end nutrition science and culinary strategy. Your metabolic potential, unlocked."
+            
+            <p className="text-xl md:text-2xl text-zinc-500 mb-16 max-w-3xl mx-auto leading-relaxed font-serif italic">
+              "The synthesis of high-end organic science and culinary strategy. SEED deciphers the biological impact of every ingredient on your cognitive performance."
             </p>
-            <button 
-              onClick={() => setView('active')}
-              className="px-16 py-6 rounded-full text-[11px] uppercase tracking-[0.5em] font-black transition-all duration-700 shadow-2xl group text-white hover:opacity-90"
-              style={{ backgroundColor: isEvening ? '#D27D56' : '#0A0C0A' }}
-            >
-              Enter Dashboard <span className="ml-3 group-hover:translate-x-2 inline-block transition-transform">→</span>
-            </button>
-          </div>
-        </section>
 
-        {/* Intelligence Section */}
-        <section className="py-32 px-6 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
-            <div className="glass p-12 rounded-[3rem] relative overflow-hidden">
-              <span className="text-[10px] uppercase tracking-[0.4em] font-black opacity-40 mb-4 block">Neural Module: AURA</span>
-              <h2 className="text-4xl md:text-5xl font-serif mb-8">Intelligence Beyond Tracking</h2>
-              <p className="text-lg font-serif italic opacity-70 leading-relaxed">
-                "AURA doesn't just log data. It analyzes mitochondrial efficiency, correlates glycemic stability with cognitive load, and prescribes culinary protocols that respect your biological finite resources."
-              </p>
-            </div>
-            <div className="space-y-12">
-               <div className="flex gap-8">
-                  <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center border border-current/10 font-serif italic text-2xl">01</div>
-                  <div>
-                    <h4 className="text-xl font-serif mb-2">Metabolic Precision</h4>
-                    <p className="text-sm opacity-60 leading-relaxed">Calculating P/C/F ratios with Shadow Logic to account for hidden lipid structures and high-ROI nutrients.</p>
+            {/* Social Proof & Trust Badges */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-16 mb-20">
+               <div className="flex flex-col items-center group">
+                  <div className="flex -space-x-3 mb-4">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-zinc-200 overflow-hidden">
+                        <img src={`https://i.pravatar.cc/100?u=${i + 10}`} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    <div className="w-10 h-10 rounded-full border-2 border-white bg-black text-white text-[8px] flex items-center justify-center font-black uppercase">+500k</div>
                   </div>
-               </div>
-               <div className="flex gap-8">
-                  <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center border border-current/10 font-serif italic text-2xl">02</div>
-                  <div>
-                    <h4 className="text-xl font-serif mb-2">Resource-Aware Chef</h4>
-                    <p className="text-sm opacity-60 leading-relaxed">Curated prescriptions generated exclusively from your current biological assets (Pantry).</p>
-                  </div>
-               </div>
-               <div className="flex gap-8">
-                  <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center border border-current/10 font-serif italic text-2xl">03</div>
-                  <div>
-                    <h4 className="text-xl font-serif mb-2">The Elite Adjustment</h4>
-                    <p className="text-sm opacity-60 leading-relaxed">Precision Add/Reduce instructions for every meal to maintain homeostatic alignment.</p>
-                  </div>
-               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Projections Section */}
-        <section className="py-32 bg-current/5">
-          <div className="max-w-4xl mx-auto px-6 text-center">
-             <span className="text-[10px] uppercase tracking-[0.5em] font-black opacity-40 mb-6 block">Temporal Projections</span>
-             <h2 className="text-5xl font-serif mb-16">See Your Future <span className="italic">Self.</span></h2>
-             
-             <div className="glass p-12 rounded-[3rem] shadow-inner mb-12">
-                <div className="flex justify-between items-end mb-8">
-                  <span className="text-sm uppercase tracking-widest font-black opacity-30">Biological Timeline</span>
-                  <span className="text-3xl font-serif italic" style={{ color: dynamicAccent }}>
-                    {timeTravelMonths === 0 ? "Now" : `+${timeTravelMonths} Months`}
+                  <span className="text-[9px] font-black uppercase tracking-widest opacity-40 text-center leading-relaxed">
+                    Joined by 500k+ <br/>health-conscious eaters
                   </span>
-                </div>
-                <input 
-                  type="range" min="0" max="6" step="1"
-                  value={timeTravelMonths}
-                  onChange={(e) => setTimeTravelMonths(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-current/10 rounded-full appearance-none cursor-pointer mb-12"
-                  style={{ accentColor: dynamicAccent }}
-                />
-                {futureProphecy && (
-                  <div className="animate-in fade-in zoom-in duration-1000">
-                    <p className="text-2xl font-serif italic opacity-80 leading-relaxed">
-                      "{futureProphecy}"
-                    </p>
+               </div>
+               
+               <div className="w-[1px] h-12 bg-current opacity-10 hidden md:block"></div>
+               
+               <div className="flex flex-col items-center">
+                  <div className="flex gap-1 mb-3">
+                    {[1,2,3,4,5].map(i => <span key={i} className="text-amber-400 text-sm">★</span>)}
                   </div>
-                )}
-             </div>
+                  <span className="text-[10px] font-serif italic opacity-60 max-w-[180px] leading-relaxed text-center">
+                    "Finally, an app that understands ingredient synergy, not just math."
+                  </span>
+               </div>
+            </div>
+            
+            <div className="flex flex-col items-center gap-12">
+               <div className="w-full max-w-lg glass p-10 rounded-[3rem] border border-zinc-200 shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-full h-1 opacity-10 bg-gradient-to-r from-transparent via-current to-transparent"></div>
+                  <p className="text-[10px] uppercase tracking-[0.5em] font-black mb-8 opacity-40">Predictive Temporal Bio-Shift</p>
+                  
+                  <div className="relative mb-10 px-4">
+                    <input 
+                      type="range" 
+                      min="0" max="6" 
+                      value={timeTravelMonths} 
+                      onChange={(e) => setTimeTravelMonths(parseInt(e.target.value))}
+                      className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer"
+                      style={{ accentColor: dynamicAccent }}
+                    />
+                    <div className="flex justify-between mt-6">
+                       <span className="text-[9px] font-black opacity-30 tracking-tighter">METABOLIC ORIGIN</span>
+                       <span className="text-[9px] font-black opacity-30 tracking-tighter uppercase">T + {timeTravelMonths} MONTHS PROTOCOL</span>
+                    </div>
+                  </div>
+
+                  {futureProphecy && (
+                    <div className="p-8 bg-white/40 rounded-[2.5rem] border border-zinc-100 shadow-inner animate-in zoom-in duration-500">
+                        <p className="text-2xl font-serif italic" style={{ color: dynamicAccent }}>"{futureProphecy}"</p>
+                    </div>
+                  )}
+               </div>
+
+               <button 
+                onClick={() => setView('active')}
+                className="group relative px-20 py-8 rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl"
+               >
+                  <div className="absolute inset-0 bg-black group-hover:bg-zinc-800 transition-colors"></div>
+                  <span className="relative z-10 text-white text-[11px] uppercase tracking-[0.7em] font-black">Initialize Experience</span>
+               </button>
+               
+               <p className="text-[9px] uppercase tracking-[0.4em] font-black opacity-30">No subscription required for initial sync</p>
+            </div>
           </div>
         </section>
 
-        {/* Footer Teaser */}
-        <section className="py-32 text-center">
-            <h3 className="text-3xl font-serif mb-12 opacity-40 italic">"Quality is not an act, it is a habit."</h3>
-            <button 
-              onClick={() => setView('active')}
-              className="text-[10px] uppercase tracking-[0.5em] font-black border-b-2 pb-2 hover:opacity-60 transition-all"
-              style={{ borderColor: dynamicAccent }}
-            >
-              Initialize Metabolic Sync
-            </button>
+        {/* Features & Integrations Section */}
+        <section className="py-40 px-6 max-w-6xl mx-auto">
+          <div className="text-center mb-24">
+            <h2 className="text-4xl md:text-5xl font-serif mb-6">Built for Biological Excellence.</h2>
+            <div className="h-1 w-24 bg-current opacity-10 mx-auto"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-32">
+            {[
+              { title: "Cellular Transparency", desc: "Most apps stop at macros. SEED analyzes anti-nutrients, inflammation vectors, and neural precursors." },
+              { title: "Dynamic Logistics", desc: "Your shopping list is a living document, evolving with your goals and available biological assets." },
+              { title: "Bio-Feedback Loops", desc: "We correlate what you eat with how you feel, identifying hidden sensitivities before they become chronic." }
+            ].map((f, i) => (
+              <div key={i} className="flex flex-col">
+                 <div className="w-12 h-12 rounded-full border border-zinc-200 flex items-center justify-center mb-8 font-serif italic text-xl opacity-30">{i+1}</div>
+                 <h3 className="text-2xl font-serif mb-6">{f.title}</h3>
+                 <p className="text-sm opacity-50 leading-relaxed font-light">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="glass p-12 rounded-[4rem] border border-current/5 flex flex-col md:flex-row items-center justify-between gap-12">
+            <div className="max-w-md">
+              <h3 className="text-2xl font-serif mb-4">Elite Integrations</h3>
+              <p className="text-sm opacity-40 leading-relaxed font-light mb-8">Seamlessly sync with your existing biological measurement ecosystem.</p>
+              <div className="flex flex-wrap gap-4 opacity-30 grayscale">
+                 <div className="px-5 py-2 border border-current rounded-full text-[9px] font-black uppercase tracking-widest">Apple Health</div>
+                 <div className="px-5 py-2 border border-current rounded-full text-[9px] font-black uppercase tracking-widest">Oura</div>
+                 <div className="px-5 py-2 border border-current rounded-full text-[9px] font-black uppercase tracking-widest">Whoop</div>
+              </div>
+            </div>
+            <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-current/10 flex items-center justify-center relative overflow-hidden group">
+               <div className="absolute inset-0 bg-current opacity-5 group-hover:opacity-10 transition-opacity"></div>
+               <span className="text-6xl group-hover:scale-125 transition-transform">🧬</span>
+            </div>
+          </div>
         </section>
       </div>
     );
   };
 
-  const Dashboard = () => (
-    <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-12 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        
-        {/* Left Sidebar: Biometrics & Status */}
-        <aside className="lg:col-span-3 space-y-12">
-           <div className="sticky top-32 space-y-12">
-              <PerformancePulse scores={state.performancePulse} isEvening={isEvening} accentProp={dynamicAccent} />
-              <HydrationTracker 
-                current={state.hydrationOunces} 
-                log={state.hydrationLog}
-                onAdd={(oz) => {
-                  const newEntry: HydrationEntry = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), amount: oz };
-                  setState(prev => ({ ...prev, hydrationOunces: prev.hydrationOunces + oz, hydrationLog: [newEntry, ...prev.hydrationLog].slice(0, 20) }));
-                }} 
-                isEvening={isEvening} 
-                accentProp={dynamicAccent} 
-              />
-              <PantryList 
-                pantry={state.pantry} 
-                onAdd={(name) => setState(p => ({...p, pantry: [...p.pantry, {id: Math.random().toString(), name}]}))} 
-                onRemove={(id) => setState(p => ({...p, pantry: p.pantry.filter(x => x.id !== id)}))} 
-              />
-           </div>
-        </aside>
-
-        {/* Center: Neural Feed & Logging */}
-        <main className="lg:col-span-6 space-y-16">
-          <StatsHeader state={state} isEvening={isEvening} accentProp={dynamicAccent} />
+  return (
+    <div className={`min-h-screen transition-colors duration-1000 ${isEvening ? 'bg-[#0F0D0C] text-[#FDFCF8]' : 'bg-[#F9F8F4] text-[#2D362E]'}`}>
+      <AmbientSoundController isEvening={isEvening} isMuted={isAudioMuted} accentColor={dynamicAccent} />
+      <FloatingAssets isEvening={isEvening} isHome={view === 'home'} />
+      
+      {/* Platform Header */}
+      <header className="fixed top-0 left-0 w-full z-50 h-24 flex items-center px-10 transition-all">
+        <div className="max-w-[1600px] w-full mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setView('home')}>
+             <div className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center transition-transform group-hover:rotate-180">
+               <span className="w-1 h-1 bg-current rounded-full"></span>
+             </div>
+             <h1 className="text-2xl font-black tracking-tighter uppercase">SEED</h1>
+          </div>
           
-          <div className="relative group">
-            <textarea
-              value={mealInput}
-              onChange={(e) => setMealInput(e.target.value)}
-              placeholder={isEvening ? "Record recovery assets..." : "Log performance fuel..."}
-              className="w-full h-44 border border-current/10 rounded-[2.5rem] p-10 focus:border-current outline-none transition-all resize-none font-serif text-3xl glass"
-            />
-            <button
-              onClick={handleLogMeal}
-              disabled={isAnalyzing || !mealInput.trim()}
-              className="absolute bottom-8 right-8 text-white px-12 py-5 rounded-3xl text-[10px] uppercase tracking-[0.3em] font-black transition-all shadow-xl"
-              style={{ backgroundColor: isEvening ? '#D27D56' : '#0A0C0A' }}
+          <div className="flex items-center gap-8">
+            <button 
+              onClick={() => setView(view === 'home' ? 'active' : 'home')}
+              className="w-12 h-12 rounded-full glass border border-zinc-200/50 flex items-center justify-center hover:scale-110 transition-all shadow-xl backdrop-blur-md"
             >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Intake'}
+              {view === 'home' ? '⚡' : '🏠'}
+            </button>
+            <button 
+              onClick={() => setIsAudioMuted(!isAudioMuted)}
+              className="w-12 h-12 rounded-full glass border border-zinc-200/50 flex items-center justify-center hover:scale-110 transition-all shadow-xl backdrop-blur-md"
+            >
+              {isAudioMuted ? '🔇' : '🔊'}
             </button>
           </div>
+        </div>
+      </header>
 
-          <div className="space-y-16">
-            {state.history.length === 0 && (
-              <div className="text-center py-24 border-2 border-dashed border-current/5 rounded-[4rem] opacity-20">
-                <span className="text-6xl block mb-6">🧬</span>
-                <p className="text-[11px] uppercase tracking-[0.5em] font-black">Waiting for metabolic data...</p>
+      <main className="max-w-6xl mx-auto px-6 relative z-10">
+        {view === 'home' ? (
+          <LandingPage />
+        ) : (
+          <div className="pt-32 animate-in fade-in duration-1000">
+            <StatsHeader state={state} isEvening={isEvening} accentProp={dynamicAccent} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-24">
+              <div className="lg:col-span-2 space-y-12">
+                {/* Refined Intake Section: Multi-line Support & Character Density */}
+                <div className="glass rounded-[4rem] p-12 shadow-2xl relative overflow-hidden group border border-current/5">
+                  <div className="absolute top-0 right-0 p-12 opacity-5 group-focus-within:opacity-20 transition-opacity">
+                    <span className="text-[100px] pointer-events-none">🧬</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mb-12">
+                    <div className="flex flex-col">
+                      <h3 className="text-[11px] uppercase tracking-[0.6em] font-black opacity-40 mb-1">Metabolic Feed</h3>
+                      <span className="text-[9px] font-black opacity-20 uppercase tracking-widest">Neural v3.2.1-Active</span>
+                    </div>
+                    <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-current/10">
+                       <span className="text-[8px] font-black opacity-60 uppercase tracking-widest">Real-time Correlation</span>
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <textarea
+                      value={mealInput}
+                      onChange={(e) => setMealInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder={isEvening ? "Describe recovery assets (e.g., Tart cherry juice, magnesium-rich spinach, amino dinner)..." : "Describe performance fuel (e.g., 200g Wild Salmon, avocado, complex greens, fermented assets)..."}
+                      className={`w-full h-64 bg-transparent border-none outline-none resize-none font-serif text-4xl md:text-5xl placeholder:opacity-20 transition-all focus:placeholder:opacity-10 leading-[1.2] custom-scrollbar overflow-y-auto ${isAnalyzing ? 'animate-pulse pointer-events-none opacity-50' : ''}`}
+                    />
+                    
+                    {/* Character Density Tracker */}
+                    <div className="absolute bottom-[-30px] left-0 flex items-center gap-6 select-none">
+                      <div className="flex items-baseline gap-2 opacity-30">
+                        <span className="text-[10px] font-black tracking-widest uppercase">Input Density</span>
+                        <span className="text-xl font-serif">{mealInput.length}</span>
+                      </div>
+                      <div className="h-1.5 w-32 bg-current/5 rounded-full overflow-hidden opacity-30">
+                         <div className="h-full bg-current transition-all duration-300" style={{ width: `${Math.min((mealInput.length / 400) * 100, 100)}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {error && <div className="mt-16 p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2">
+                    <span className="text-rose-500 text-xl">⚠️</span>
+                    <p className="text-rose-500 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed">{error}</p>
+                  </div>}
+
+                  <div className="mt-20 flex flex-col md:flex-row justify-between items-center gap-10">
+                    <div className="order-2 md:order-1 flex flex-col items-center md:items-start opacity-30">
+                       <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 italic">Protocol Execution</span>
+                       <span className="text-[9px] font-black tracking-widest uppercase">⌘ + ENTER TO COMMENCE SYNC</span>
+                    </div>
+                    
+                    <button 
+                      onClick={handleLogMeal}
+                      disabled={isAnalyzing || mealInput.trim().length === 0}
+                      className={`order-1 md:order-2 px-16 py-7 rounded-full text-white text-[11px] uppercase tracking-[0.5em] font-black transition-all shadow-2xl flex items-center gap-5 ${isAnalyzing || mealInput.trim().length === 0 ? 'bg-zinc-400 cursor-not-allowed grayscale' : 'hover:scale-105 active:scale-95'}`}
+                      style={!isAnalyzing && mealInput.trim().length > 0 ? { backgroundColor: dynamicAccent, color: isEvening ? '#0F0D0C' : '#FDFCF8' } : {}}
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="w-3 h-3 rounded-full bg-white animate-ping"></div>
+                          <span>Syncing Neural Pathways...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Execute Metabolic Sync</span>
+                          <span className="opacity-40 text-sm">→</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {state.history.length > 0 ? (
+                  <div className="space-y-12">
+                    {state.history.map((analysis, idx) => (
+                      <AnalysisCard key={idx} analysis={analysis} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-40 text-center glass rounded-[4rem] opacity-20 border-2 border-dashed border-current/10">
+                    <p className="text-[12px] uppercase tracking-[0.8em] font-black">Metabolic History Empty</p>
+                  </div>
+                )}
               </div>
-            )}
-            {state.history.map((analysis, idx) => (
-              <AnalysisCard key={idx} analysis={analysis} />
-            ))}
-          </div>
-        </main>
 
-        {/* Right Sidebar: Logistics & Goals */}
-        <aside className="lg:col-span-3 space-y-12">
-          <div className="sticky top-32 space-y-12">
-            <div className="glass p-10 rounded-[3rem]">
-              <span className="text-[10px] uppercase tracking-[0.4em] font-black opacity-40 mb-6 block">Health Goal Directive</span>
-              <div className="flex flex-col gap-3">
-                {Object.values(GoalType).map(g => (
-                  <button 
-                    key={g} 
-                    onClick={() => setState(p => ({...p, goal: g}))} 
-                    className={`text-left py-4 px-6 rounded-2xl text-[10px] uppercase tracking-[0.3em] font-black border transition-all ${
-                      state.goal === g ? 'bg-current text-white scale-105 border-transparent' : 'border-current/10 opacity-30 hover:opacity-100'
-                    }`}
-                    style={state.goal === g ? { backgroundColor: dynamicAccent } : {}}
-                  >
-                    {g}
-                  </button>
-                ))}
+              <div className="space-y-12">
+                <div className="sticky top-32 space-y-12">
+                  <HydrationTracker 
+                    current={state.hydrationOunces} 
+                    log={state.hydrationLog}
+                    onAdd={(oz) => setState(prev => ({
+                      ...prev,
+                      hydrationOunces: prev.hydrationOunces + oz,
+                      hydrationLog: [{ id: Math.random().toString(), timestamp: new Date().toISOString(), amount: oz }, ...prev.hydrationLog]
+                    }))}
+                    isEvening={isEvening}
+                    accentProp={dynamicAccent}
+                  />
+                  <PerformancePulse scores={state.performancePulse} isEvening={isEvening} accentProp={dynamicAccent} />
+                  <PantryList 
+                    pantry={state.pantry} 
+                    onAdd={(name) => setState(prev => ({ ...prev, pantry: [...prev.pantry, { id: Math.random().toString(), name }] }))}
+                    onRemove={(id) => setState(prev => ({ ...prev, pantry: prev.pantry.filter(p => p.id !== id) }))}
+                  />
+                  
+                  <div className="space-y-4">
+                    <button 
+                      onClick={() => setShowVault(!showVault)}
+                      className="w-full py-7 glass rounded-[3rem] text-[10px] uppercase tracking-[0.5em] font-black hover:bg-white/40 transition-all border border-zinc-200/50 backdrop-blur-md shadow-lg"
+                    >
+                      {showVault ? 'Deactivate Vault' : 'Metabolic Identity'}
+                    </button>
+                    <button 
+                      onClick={() => setShowLogger(!showLogger)}
+                      className="w-full py-7 glass rounded-[3rem] text-[10px] uppercase tracking-[0.5em] font-black hover:bg-white/40 transition-all border border-zinc-200/50 backdrop-blur-md shadow-lg"
+                    >
+                      {showLogger ? 'Deactivate Feedback' : 'Bio-Feedback Log'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {showVault && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-6">
+                 <div className="w-full max-w-4xl relative animate-in zoom-in duration-500">
+                    <HealthVault profile={state.userProfile} onUpdate={(field, value) => setState(prev => ({ ...prev, userProfile: { ...prev.userProfile, [field]: value } }))} isEvening={isEvening} />
+                    <button onClick={() => setShowVault(false)} className="absolute top-8 right-12 text-2xl font-black opacity-30 hover:opacity-100 transition-opacity">×</button>
+                 </div>
+              </div>
+            )}
+            
+            {showLogger && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-6">
+                 <div className="w-full max-w-xl relative animate-in zoom-in duration-500">
+                    <BioFeedbackLogger 
+                      onLog={(entry) => {
+                        setState(prev => ({
+                          ...prev,
+                          bioFeedbackHistory: [{ ...entry, id: Math.random().toString(), timestamp: new Date().toISOString() }, ...prev.bioFeedbackHistory]
+                        }));
+                        setShowLogger(false);
+                      }}
+                      isEvening={isEvening} 
+                    />
+                    <button onClick={() => setShowLogger(false)} className="absolute top-8 right-12 text-2xl font-black opacity-30 hover:opacity-100 transition-opacity">×</button>
+                 </div>
+              </div>
+            )}
+
             <MealPlanner 
               mealPlan={state.mealPlan} 
-              onUpdate={(p) => setState(prev => ({...prev, mealPlan: p}))}
+              onUpdate={(plan) => setState(prev => ({ ...prev, mealPlan: plan }))}
               onGenerateShoppingList={async () => {
-                if (state.mealPlan.length === 0 || isGeneratingList) return;
-                setIsGeneratingList(true);
                 try {
-                  const list = await generateShoppingListFromPlan(state.mealPlan, state.pantry);
-                  setState(prev => ({ ...prev, shoppingList: list }));
-                } catch (err) { console.error(err); } finally { setIsGeneratingList(false); }
+                   const list = await generateShoppingListFromPlan(state.mealPlan, state.pantry);
+                   setState(prev => ({ ...prev, shoppingList: list }));
+                } catch (e) { console.error(e); }
               }}
               isEvening={isEvening}
               accentProp={dynamicAccent}
             />
 
-            <ShoppingList 
-              items={state.shoppingList}
-              onToggle={(id) => setState(prev => ({...prev, shoppingList: prev.shoppingList.map(item => item.id === id ? {...item, isPurchased: !item.isPurchased} : item)}))}
-              onClear={() => setState(prev => ({...prev, shoppingList: []}))}
-              isEvening={isEvening}
-              accentProp={dynamicAccent}
-            />
+            {state.shoppingList.length > 0 && (
+              <ShoppingList 
+                items={state.shoppingList} 
+                onToggle={(id) => setState(prev => ({
+                  ...prev,
+                  shoppingList: prev.shoppingList.map(item => item.id === id ? { ...item, isPurchased: !item.isPurchased } : item)
+                }))}
+                onClear={() => setState(prev => ({ ...prev, shoppingList: [] }))}
+                isEvening={isEvening}
+                accentProp={dynamicAccent}
+              />
+            )}
           </div>
-        </aside>
-      </div>
-    </div>
-  );
+        )}
+      </main>
 
-  return (
-    <div className="min-h-screen selection:bg-current/10" ref={scrollContainerRef}>
       <WaveFooter isEvening={isEvening} accentProp={dynamicAccent} progress={progress} />
-      <FloatingAssets isEvening={isEvening} />
-      <AmbientSoundController isEvening={isEvening} isMuted={isAudioMuted} accentColor={dynamicAccent} />
       
-      {/* Platform Header */}
-      <header className="fixed top-0 left-0 w-full z-50 glass border-b border-current/5 transition-all duration-700">
-        <div className="max-w-[1600px] mx-auto px-6 h-24 flex justify-between items-center">
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setView('home')}>
-             <h1 className="text-3xl font-black tracking-tighter">SEED</h1>
-             <div className="hidden md:flex flex-col">
-               <span className="text-[8px] uppercase tracking-[0.4em] font-black opacity-40">Elite Health Systems</span>
-             </div>
-          </div>
-
-          <nav className="flex items-center gap-8 lg:gap-12">
-            <button 
-              onClick={() => setView(view === 'home' ? 'active' : 'home')}
-              className="text-[10px] uppercase tracking-[0.4em] font-black opacity-60 hover:opacity-100 transition-all"
-            >
-              {view === 'home' ? 'Launch Intelligence' : 'Surface View'}
-            </button>
-            <button 
-              onClick={() => setShowVault(!showVault)}
-              className="text-[10px] uppercase tracking-[0.4em] font-black opacity-60 hover:opacity-100 transition-all"
-            >
-              Identity
-            </button>
-            <button 
-              onClick={() => setShowLogger(!showLogger)}
-              className="text-[10px] uppercase tracking-[0.4em] font-black opacity-60 hover:opacity-100 transition-all"
-            >
-              Bio-Feed
-            </button>
-            
-            <div className="h-8 w-[1px] bg-current opacity-10 mx-2 hidden md:block"></div>
-            
-            <button onClick={() => setIsAudioMuted(!isAudioMuted)} className="p-2 opacity-40 hover:opacity-100 transition-all">
-              {isAudioMuted ? '🔇' : '🔊'}
-            </button>
-            
-            <div className="hidden md:flex items-center gap-3 glass px-5 py-2 rounded-full text-[9px] uppercase tracking-[0.3em] font-black border-current/10" style={{ color: dynamicAccent }}>
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: dynamicAccent }}></span>
-              Metabolic Sync
-            </div>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content Areas */}
-      <div className="pt-24">
-        {showVault && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-6">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <HealthVault profile={state.userProfile} onUpdate={handleUpdateProfile} isEvening={isEvening} />
-            <button onClick={() => setShowVault(false)} className="mt-6 text-white text-[10px] uppercase tracking-[0.5em] font-black w-full text-center">Close Vault</button>
-          </div>
-        </div>}
-
-        {showLogger && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-6">
-          <div className="max-w-xl w-full">
-            <BioFeedbackLogger onLog={(d) => { setState(p => ({...p, bioFeedbackHistory: [{...d, id: Math.random().toString(), timestamp: new Date().toISOString()}, ...p.bioFeedbackHistory]})); setShowLogger(false); }} isEvening={isEvening} />
-            <button onClick={() => setShowLogger(false)} className="mt-6 text-white text-[10px] uppercase tracking-[0.5em] font-black w-full text-center">Disconnect Link</button>
-          </div>
-        </div>}
-
-        {view === 'home' ? <LandingPage /> : <Dashboard />}
-      </div>
-
       <style>{`
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-        body.evening ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.05);
+          border-radius: 10px;
+        }
+        body.evening .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.05);
+        }
       `}</style>
     </div>
   );

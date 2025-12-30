@@ -1,17 +1,17 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AuraAnalysis, GoalType, MacroStats, PantryItem, UserProfile, MealPlanEntry, ShoppingItem, BioFeedbackEntry } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * Generates a hyper-realistic photographic asset for the UI background.
+ * Generates a hyper-realistic 3D photographic asset for the UI.
  */
 export const generateUIAsset = async (subject: string, isEvening: boolean): Promise<string | undefined> => {
   try {
-    const prompt = `Hyper-realistic minimalist professional food photography of ${subject}. 
-    ${isEvening ? 'Dramatic low-key lighting, deep shadows, isolated on a pure black background' : 'Bright clean studio lighting, soft shadows, isolated on a pure white background'}. 
-    Macro focus, 8k resolution, organic textures, luxury aesthetic. No humans.`;
+    const prompt = `Extreme hyper-realistic 3D professional food photography of ${subject}. 
+    Luxury organic aesthetic, macro lens focus, shallow depth of field. 
+    ${isEvening ? 'Dramatic low-key cinematic lighting, deep rich shadows, isolated on a pure dark void background' : 'Brilliant clean studio lighting, high-end commercial aesthetic, soft global illumination, isolated on a pure white background'}. 
+    8k resolution, photorealistic textures, floating composition, no humans.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
